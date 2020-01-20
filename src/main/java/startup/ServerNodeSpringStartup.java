@@ -2,7 +2,10 @@ package startup;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.cache.CacheMode;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -17,7 +20,8 @@ public class ServerNodeSpringStartup {
 		IgniteConfiguration igniteConfiguration = new IgniteConfiguration();
 		igniteConfiguration.setDataStorageConfiguration(
 				new DataStorageConfiguration()
-				.setDefaultDataRegionConfiguration(
+					.setDataRegionConfigurations()
+					.setDefaultDataRegionConfiguration(
 						new DataRegionConfiguration()
 							.setMaxSize(dataRegionMaxSize)
 							.setPersistenceEnabled(true)
@@ -32,6 +36,8 @@ public class ServerNodeSpringStartup {
 		try (Ignite ignite = Ignition.start(createConfiguration(true))) {
 			ignite.cluster().active(true);
 
+			final long memory = Runtime.getRuntime().maxMemory();
+
 			IgniteCache<Object, Object> cache = ignite.getOrCreateCache(CACHE_NAME);
 			//Populating the cache with data.
 			for (long i = 1; i < 500; i++) {
@@ -42,12 +48,14 @@ public class ServerNodeSpringStartup {
 
 	@Test
 	public void secondStep_DestroyCache() throws Exception {
-		try (Ignite ignite = Ignition.start(createConfiguration(false))) {
+		try (Ignite ignite = Ignition.start(createConfiguration(true))) {
 			ignite.cluster().active(true);
 
+			/* After change Max Data Region does not need to delete cache.
+			OOM error happened without deleting cache.
 			IgniteCache<Object, Object> cache = ignite.getOrCreateCache(CACHE_NAME);
 
-			cache.destroy();
+			cache.destroy();*/
 		}
 	}
 }
